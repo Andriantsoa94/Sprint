@@ -1,10 +1,14 @@
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import annotation.UrlMapping;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,6 +17,7 @@ import util.PackageScanner;
 
 public class ProcessRequest extends HttpServlet {
     private List<Class<?>> modelesEtControleurs = new ArrayList<>();
+    private Map<String, Method> urlMethodMap = new HashMap<>();
 
     protected void processRequest(HttpServletRequest req, HttpServletResponse res)
             throws ServletException, IOException {
@@ -27,7 +32,6 @@ public class ProcessRequest extends HttpServlet {
 
             if (fichier.exists()) {
                 res.setContentType("text/html;charset=UTF-8");
-
                 Files.copy(fichier.toPath(), res.getOutputStream());
                 return;
             } else {
@@ -38,11 +42,23 @@ public class ProcessRequest extends HttpServlet {
 
         res.setContentType("text/plain;charset=UTF-8");
         PrintWriter out = res.getWriter();
-        out.println(output);
 
-        for (Class<?> clazz : modelesEtControleurs) {
-            out.println("- " + clazz.getSimpleName());
+        Method method = urlMethodMap.get(url);
+
+        if (method == null) {
+            out.println("Aucune methode trouvee pour l'URL : " + url);
+            out.println("");
+            out.println("URLs disponibles :");
+            for (String u : urlMethodMap.keySet()) {
+                Method m = urlMethodMap.get(u);
+                out.println("  " + u + "    " + m.getDeclaringClass().getName() + "." + m.getName() + "()");
+            }
+            return;
         }
+
+        out.println("URL     : " + url);
+        out.println("Methode : " + method.getName() + "()");
+        out.println("Classe  : " + method.getDeclaringClass().getName());
     }
 
     @Override
@@ -65,6 +81,15 @@ public class ProcessRequest extends HttpServlet {
 
             PackageScanner packageScan = new PackageScanner();
             this.modelesEtControleurs = packageScan.scanPackage(pack, annotation);
+
+            for (Class<?> clazz : modelesEtControleurs) {
+                for (Method method : clazz.getDeclaredMethods()) {
+                    if (method.isAnnotationPresent(UrlMapping.class)) {
+                        String mappedUrl = method.getAnnotation(UrlMapping.class).url();
+                        urlMethodMap.put(mappedUrl, method);
+                    }
+                }
+            }
 
         } catch (Exception ex) {
             System.out.println("Erreur lors de l'initialisation du Framework : " + ex.getMessage());
