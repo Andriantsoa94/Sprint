@@ -13,12 +13,13 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import model.UrlMappingKey; 
+import model.UrlMappingKey;
 import util.PackageScanner;
+import util.MethodExecutor;
 
 public class ProcessRequest extends HttpServlet {
     private List<Class<?>> modelesEtControleurs = new ArrayList<>();
-    
+
     private Map<UrlMappingKey, Method> urlMethodMap = new HashMap<>();
 
     @Override
@@ -34,7 +35,7 @@ public class ProcessRequest extends HttpServlet {
                 for (Method method : clazz.getDeclaredMethods()) {
                     if (method.isAnnotationPresent(AnnotationMeth.class)) {
                         AnnotationMeth mappedUrl = method.getAnnotation(AnnotationMeth.class);
-                        
+
                         UrlMappingKey key = new UrlMappingKey(mappedUrl.URL(), mappedUrl.Method());
                         urlMethodMap.put(key, method);
                     }
@@ -47,7 +48,7 @@ public class ProcessRequest extends HttpServlet {
     }
 
     protected void processRequest(HttpServletRequest req, HttpServletResponse res)
-            throws ServletException, IOException {
+            throws ServletException, IOException{
 
         String url = req.getRequestURI();
         String[] uri = url.split("/");
@@ -92,6 +93,14 @@ public class ProcessRequest extends HttpServlet {
         out.println("Methode : " + method.getName() + "()");
         out.println("Http Methode : " + httpMethod);
         out.println("Classe  : " + method.getDeclaringClass().getName());
+
+        try {
+            out.println("Execution de :" + method);
+            Object resulats = MethodExecutor.execute(method);
+            out.println(resulats);
+        } catch (Exception e) {
+            out.println("Erreur lors de l'execution du methode :" + e);
+        }
     }
 
     @Override
