@@ -8,16 +8,43 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import annotation.UrlMapping;
+import annotation.AnnotationMeth;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import model.UrlMappingKey; 
 import util.PackageScanner;
 
 public class ProcessRequest extends HttpServlet {
     private List<Class<?>> modelesEtControleurs = new ArrayList<>();
-    private Map<String, Method> urlMethodMap = new HashMap<>();
+    
+    private Map<UrlMappingKey, Method> urlMethodMap = new HashMap<>();
+
+    @Override
+    public void init() {
+        try {
+            String pack = getInitParameter("package");
+            String annotation = getInitParameter("annotation");
+
+            PackageScanner packageScan = new PackageScanner();
+            this.modelesEtControleurs = packageScan.scanPackage(pack, annotation);
+
+            for (Class<?> clazz : modelesEtControleurs) {
+                for (Method method : clazz.getDeclaredMethods()) {
+                    if (method.isAnnotationPresent(AnnotationMeth.class)) {
+                        AnnotationMeth mappedUrl = method.getAnnotation(AnnotationMeth.class);
+                        
+                        UrlMappingKey key = new UrlMappingKey(mappedUrl.URL(), mappedUrl.Method());
+                        urlMethodMap.put(key, method);
+                    }
+                }
+            }
+
+        } catch (Exception ex) {
+            System.out.println("Erreur lors de l'initialisation du Framework : " + ex.getMessage());
+        }
+    }
 
     protected void processRequest(HttpServletRequest req, HttpServletResponse res)
             throws ServletException, IOException {
@@ -43,21 +70,27 @@ public class ProcessRequest extends HttpServlet {
         res.setContentType("text/plain;charset=UTF-8");
         PrintWriter out = res.getWriter();
 
-        Method method = urlMethodMap.get(url);
+        String httpMethod = req.getMethod();
+        
+        UrlMappingKey secretKey = new UrlMappingKey("/" + output, httpMethod);
+
+        Method method = urlMethodMap.get(secretKey);
 
         if (method == null) {
-            out.println("Aucune methode trouvee pour l'URL : " + url);
+            out.println("Aucune methode trouvee pour l'URL : " + url + " et la Methode : " + httpMethod);
             out.println("");
             out.println("URLs disponibles :");
-            for (String u : urlMethodMap.keySet()) {
+            
+            for (UrlMappingKey u : urlMethodMap.keySet()) {
                 Method m = urlMethodMap.get(u);
-                out.println("  " + u + "    " + m.getDeclaringClass().getName() + "." + m.getName() + "()");
+                out.println(u.getMethod() + " " + u.getUrl() + "    " + m.getDeclaringClass().getName() + "." + m.getName() + "()");
             }
             return;
         }
 
         out.println("URL     : " + url);
         out.println("Methode : " + method.getName() + "()");
+        out.println("Http Methode : " + httpMethod);
         out.println("Classe  : " + method.getDeclaringClass().getName());
     }
 
@@ -71,28 +104,5 @@ public class ProcessRequest extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse res)
             throws ServletException, IOException {
         processRequest(req, res);
-    }
-
-    @Override
-    public void init() {
-        try {
-            String pack = getInitParameter("package");
-            String annotation = getInitParameter("annotation");
-
-            PackageScanner packageScan = new PackageScanner();
-            this.modelesEtControleurs = packageScan.scanPackage(pack, annotation);
-
-            for (Class<?> clazz : modelesEtControleurs) {
-                for (Method method : clazz.getDeclaredMethods()) {
-                    if (method.isAnnotationPresent(UrlMapping.class)) {
-                        String mappedUrl = method.getAnnotation(UrlMapping.class).url();
-                        urlMethodMap.put(mappedUrl, method);
-                    }
-                }
-            }
-
-        } catch (Exception ex) {
-            System.out.println("Erreur lors de l'initialisation du Framework : " + ex.getMessage());
-        }
     }
 }
