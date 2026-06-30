@@ -18,8 +18,8 @@ import util.PackageScanner;
 import util.MethodExecutor;
 
 public class ProcessRequest extends HttpServlet {
-    private List<Class<?>> modelesEtControleurs = new ArrayList<>();
 
+    private List<Class<?>> modelesEtControleurs = new ArrayList<>();
     private Map<UrlMappingKey, Method> urlMethodMap = new HashMap<>();
 
     @Override
@@ -36,14 +36,24 @@ public class ProcessRequest extends HttpServlet {
                     if (method.isAnnotationPresent(AnnotationMeth.class)) {
                         AnnotationMeth mappedUrl = method.getAnnotation(AnnotationMeth.class);
 
-                        UrlMappingKey key = new UrlMappingKey(mappedUrl.URL(), mappedUrl.Method());
+                        String httpMethod = (mappedUrl.Method() == null || mappedUrl.Method().trim().isEmpty()) ? "GET" : mappedUrl.Method().toUpperCase();
+
+                        UrlMappingKey key = new UrlMappingKey(mappedUrl.URL(), httpMethod);
+
+                        if (urlMethodMap.containsKey(key)){
+                            Method existante = urlMethodMap.get(key);
+                            throw new RuntimeException("CONFLIT DE ROUTE DETECTE : L'URL " + key.getUrl() + 
+                                    " [" + key.getMethod() + "] est utilisee par " + existante.getName() + "() et " + method.getName() + "()");
+                        }
                         urlMethodMap.put(key, method);
                     }
                 }
             }
 
         } catch (Exception ex) {
-            System.out.println("Erreur lors de l'initialisation du Framework : " + ex.getMessage());
+            System.err.println("ERREUR CRITIQUE DANS LE FRAMEWORK : " + ex.getMessage());
+            ex.printStackTrace();
+            throw new RuntimeException(ex);
         }
     }
 
@@ -96,8 +106,7 @@ public class ProcessRequest extends HttpServlet {
 
         try {
             out.println("Execution de :" + method);
-            Object resulats = MethodExecutor.execute(method);
-            out.println(resulats);
+            MethodExecutor.execute(method);
         } catch (Exception e) {
             out.println("Erreur lors de l'execution du methode :" + e);
         }
