@@ -3,62 +3,30 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
-import annotation.AnnotationMeth;
+import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import model.UrlMappingKey;
-import util.PackageScanner;
+
 import util.MethodExecutor;
+import util.UrlMethod;
 
 public class ProcessRequest extends HttpServlet {
 
-    private List<Class<?>> modelesEtControleurs = new ArrayList<>();
-    private Map<UrlMappingKey, Method> urlMethodMap = new HashMap<>();
+    private HashMap<UrlMethod, Method> urlMap;
 
+    @SuppressWarnings("unchecked")
     @Override
-    public void init() {
-        try {
-            String pack = getInitParameter("package");
-            String annotation = getInitParameter("annotation");
-
-            PackageScanner packageScan = new PackageScanner();
-            this.modelesEtControleurs = packageScan.scanPackage(pack, annotation);
-
-            for (Class<?> clazz : modelesEtControleurs) {
-                for (Method method : clazz.getDeclaredMethods()) {
-                    if (method.isAnnotationPresent(AnnotationMeth.class)) {
-                        AnnotationMeth mappedUrl = method.getAnnotation(AnnotationMeth.class);
-
-                        String httpMethod = (mappedUrl.Method() == null || mappedUrl.Method().trim().isEmpty()) ? "GET" : mappedUrl.Method().toUpperCase();
-
-                        UrlMappingKey key = new UrlMappingKey(mappedUrl.URL(), httpMethod);
-
-                        if (urlMethodMap.containsKey(key)){
-                            Method existante = urlMethodMap.get(key);
-                            throw new RuntimeException("CONFLIT DE ROUTE DETECTE : L'URL " + key.getUrl() + 
-                                    " [" + key.getMethod() + "] est utilisee par " + existante.getName() + "() et " + method.getName() + "()");
-                        }
-                        urlMethodMap.put(key, method);
-                    }
-                }
-            }
-
-        } catch (Exception ex) {
-            System.err.println("ERREUR CRITIQUE DANS LE FRAMEWORK : " + ex.getMessage());
-            ex.printStackTrace();
-            throw new RuntimeException(ex);
-        }
+    public void init() throws ServletException {
+        ServletContext context = getServletContext();
+        this.urlMap = (HashMap<UrlMethod, Method>) context.getAttribute("urlMap");
     }
 
     protected void processRequest(HttpServletRequest req, HttpServletResponse res)
-            throws ServletException, IOException{
+            throws ServletException, IOException {
 
         String url = req.getRequestURI();
         String[] uri = url.split("/");
@@ -82,19 +50,20 @@ public class ProcessRequest extends HttpServlet {
         PrintWriter out = res.getWriter();
 
         String httpMethod = req.getMethod();
-        
-        UrlMappingKey secretKey = new UrlMappingKey("/" + output, httpMethod);
+        UrlMethod cle = new UrlMethod("/" + output, httpMethod);
 
-        Method method = urlMethodMap.get(secretKey);
+        Method method = (urlMap != null) ? urlMap.get(cle) : null;
 
         if (method == null) {
             out.println("Aucune methode trouvee pour l'URL : " + url + " et la Methode : " + httpMethod);
             out.println("");
             out.println("URLs disponibles :");
-            
-            for (UrlMappingKey u : urlMethodMap.keySet()) {
-                Method m = urlMethodMap.get(u);
-                out.println(u.getMethod() + " " + u.getUrl() + "    " + m.getDeclaringClass().getName() + "." + m.getName() + "()");
+
+            if (urlMap != null) {
+                for (UrlMethod u : urlMap.keySet()) {
+                    Method m = urlMap.get(u);
+                    out.println(u.getMethod() + " " + u.getUrl() + "    " + m.getDeclaringClass().getName() + "." + m.getName() + "()");
+                }
             }
             return;
         }
