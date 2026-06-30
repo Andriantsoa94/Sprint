@@ -20,21 +20,16 @@ public class UrlMappingKey {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (!(obj instanceof UrlMappingKey)){
-            return false;
-        }
-        UrlMappingKey urlMappingKey = (UrlMappingKey) obj;
-        return this.url.equals(urlMappingKey.getUrl()) && this.methode.equals(urlMappingKey.getMethod());
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        UrlMappingKey that = (UrlMappingKey) o;
+        return Objects.equals(url, that.url) && Objects.equals(methode, that.methode);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(this.url ,this.methode);
+        return Objects.hash(url, methode);
     }
 
-    @Override
-    public String toString() {
-        return "[" + this.url +","+ this.methode +"]";
-    }
 }
