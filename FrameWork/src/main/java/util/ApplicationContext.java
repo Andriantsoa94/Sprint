@@ -17,7 +17,7 @@ public class ApplicationContext {
 
             String url = "jdbc:postgresql://localhost:5432/ma_base";
             String user = "postgres";
-            String password = "password";
+            String password = "postgres";
             Connection connection = DriverManager.getConnection(url, user, password);
 
             registry.put("databaseConnection", connection);
