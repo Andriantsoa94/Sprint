@@ -16,11 +16,9 @@ import annotation.UrlMapping;
 public class FinderAnnotation {
 
     public static HashMap<UrlMethod, Method> getControleurMaping(String packageName) throws Exception {
-        // recuperer les classes du package qui sont des controleurs
         List<Class<?>> listClasses = findAllControleur(packageName);
         HashMap<UrlMethod, Method> allMaping = new HashMap<>();
 
-        // recuperer la liste des methodes de chaque controleur
         for (Class<?> controleur : listClasses) {
             System.out.println("Verification de la classe " + controleur.getName());
             for (Method m : controleur.getDeclaredMethods()) {
@@ -101,8 +99,6 @@ public class FinderAnnotation {
             File[] files = directory.listFiles();
             if (files != null) {
                 for (File file : files) {
-                    // verifier si il s'agit d'un sous-dossier (sous-package) en premier,
-                    // pour ne pas tenter de le charger comme une classe
                     if (file.isDirectory()) {
                         List<Class<?>> sousClasses = getClassesInPackage(packageName + "." + file.getName());
                         classes.addAll(sousClasses);
