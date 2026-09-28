@@ -1,15 +1,12 @@
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.reflect.Array;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
+import com.google.gson.Gson;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
@@ -24,6 +21,7 @@ import util.UrlMethod;
 
 public class ProcessRequest extends HttpServlet {
 
+    private final Gson gson = new Gson();
     private HashMap<UrlMethod, Method> urlMap;
     private String prefix;
     private String surfix;
@@ -41,8 +39,8 @@ public class ProcessRequest extends HttpServlet {
             throws ServletException, IOException {
 
         String url = req.getRequestURI();
-        String[] uri = url.split("/");
-        String output = uri[uri.length - 1];
+        String route = url.substring(req.getContextPath().length());
+        String output = route.substring(route.lastIndexOf('/') + 1);
 
         if (output.endsWith(".html")) {
             String cheminPhysique = getServletContext().getRealPath("/" + output);
@@ -59,7 +57,7 @@ public class ProcessRequest extends HttpServlet {
         }
 
         String httpMethod = req.getMethod();
-        UrlMethod cle = new UrlMethod("/" + output, httpMethod);
+        UrlMethod cle = new UrlMethod(route, httpMethod);
 
         Method method = (urlMap != null) ? urlMap.get(cle) : null;
 
@@ -86,7 +84,7 @@ public class ProcessRequest extends HttpServlet {
             if (method.isAnnotationPresent(API.class)) {
                 res.setContentType("application/json;charset=UTF-8");
                 PrintWriter out = res.getWriter();
-                out.print(obj instanceof String ? obj : toJson(obj));
+                out.print(gson.toJson(obj));
                 return;
             }
 
@@ -115,93 +113,6 @@ public class ProcessRequest extends HttpServlet {
             PrintWriter out = res.getWriter();
             out.println("Erreur lors de l'execution du methode :" + e);
         }
-    }
-
-    private String toJson(Object value) throws IllegalAccessException {
-        if (value == null) {
-            return "null";
-        }
-        if (value instanceof String || value instanceof Character) {
-            return quote(value.toString());
-        }
-        if (value instanceof Number || value instanceof Boolean) {
-            return value.toString();
-        }
-        if (value.getClass().isArray()) {
-            StringBuilder json = new StringBuilder("[");
-            for (int i = 0; i < Array.getLength(value); i++) {
-                if (i > 0) {
-                    json.append(',');
-                }
-                json.append(toJson(Array.get(value, i)));
-            }
-            return json.append(']').toString();
-        }
-        if (value instanceof Iterable<?>) {
-            StringBuilder json = new StringBuilder("[");
-            Iterator<?> iterator = ((Iterable<?>) value).iterator();
-            while (iterator.hasNext()) {
-                if (json.length() > 1) {
-                    json.append(',');
-                }
-                json.append(toJson(iterator.next()));
-            }
-            return json.append(']').toString();
-        }
-        if (value instanceof Map<?, ?>) {
-            StringBuilder json = new StringBuilder("{");
-            for (Map.Entry<?, ?> entry : ((Map<?, ?>) value).entrySet()) {
-                if (json.length() > 1) {
-                    json.append(',');
-                }
-                json.append(quote(String.valueOf(entry.getKey()))).append(':');
-                json.append(toJson(entry.getValue()));
-            }
-            return json.append('}').toString();
-        }
-
-        StringBuilder json = new StringBuilder("{");
-        boolean first = true;
-        for (Field field : value.getClass().getDeclaredFields()) {
-            if (Modifier.isStatic(field.getModifiers()) || field.isSynthetic()) {
-                continue;
-            }
-            field.setAccessible(true);
-            if (!first) {
-                json.append(',');
-            }
-            json.append(quote(field.getName())).append(':');
-            json.append(toJson(field.get(value)));
-            first = false;
-        }
-        return json.append('}').toString();
-    }
-
-    private String quote(String value) {
-        StringBuilder escaped = new StringBuilder("\"");
-        for (int i = 0; i < value.length(); i++) {
-            char character = value.charAt(i);
-            switch (character) {
-                case '"':
-                    escaped.append("\\\"");
-                    break;
-                case '\\':
-                    escaped.append("\\\\");
-                    break;
-                case '\n':
-                    escaped.append("\\n");
-                    break;
-                case '\r':
-                    escaped.append("\\r");
-                    break;
-                case '\t':
-                    escaped.append("\\t");
-                    break;
-                default:
-                    escaped.append(character);
-            }
-        }
-        return escaped.append('"').toString();
     }
 
     @Override
