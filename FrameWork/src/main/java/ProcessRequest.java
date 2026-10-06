@@ -76,7 +76,7 @@ public class ProcessRequest extends HttpServlet {
         }
 
         try {
-            Object obj = MethodExecutor.execute(method);
+            Object obj = MethodExecutor.execute(method ,req);
 
             if (obj instanceof ModelAndView) {
                 ModelAndView mv = (ModelAndView) obj;
