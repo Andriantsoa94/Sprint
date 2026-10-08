@@ -79,7 +79,7 @@ public class ProcessRequest extends HttpServlet {
         }
 
         try {
-            Object obj = MethodExecutor.execute(method);
+            Object obj = MethodExecutor.execute(method ,req);
 
             if (method.isAnnotationPresent(API.class)) {
                 res.setContentType("application/json;charset=UTF-8");

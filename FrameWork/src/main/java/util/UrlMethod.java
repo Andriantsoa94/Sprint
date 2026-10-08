@@ -1,6 +1,3 @@
-/**
- * Classe pour relier le url et le methode et les autres classe l'appelle 
- */
 package util;
 
 import java.util.Objects;
