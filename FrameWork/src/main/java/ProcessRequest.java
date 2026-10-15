@@ -10,6 +10,7 @@ import com.google.gson.Gson;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -19,6 +20,7 @@ import util.MethodExecutor;
 import util.ModelAndView;
 import util.UrlMethod;
 
+@MultipartConfig
 public class ProcessRequest extends HttpServlet {
 
     private final Gson gson = new Gson();
