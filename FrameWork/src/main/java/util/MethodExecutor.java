@@ -8,7 +8,7 @@ import annotation.RequestParam;
 
 public class MethodExecutor {
 
-    public static Object execute(Method method, HttpServletRequest req) throws Exception {
+    public static Object execute(Method method, HttpServletRequest req , Map<String , List<UploadFichier>> uploadFile) throws Exception {
         if (method == null) {
             System.err.println("Methode ne peut pas etre null");
             return null;

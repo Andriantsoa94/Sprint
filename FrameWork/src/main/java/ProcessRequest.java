@@ -3,8 +3,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import com.google.gson.Gson;
 import jakarta.servlet.RequestDispatcher;
@@ -18,6 +17,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import annotation.API;
 import util.MethodExecutor;
 import util.ModelAndView;
+import util.UploadFichier;
 import util.UrlMethod;
 
 @MultipartConfig
@@ -43,6 +43,8 @@ public class ProcessRequest extends HttpServlet {
         String url = req.getRequestURI();
         String route = url.substring(req.getContextPath().length());
         String output = route.substring(route.lastIndexOf('/') + 1);
+
+        Map<String , List<UploadFichier>> file = UploadFichier.getFile(req);
 
         if (output.endsWith(".html")) {
             String cheminPhysique = getServletContext().getRealPath("/" + output);
@@ -81,7 +83,7 @@ public class ProcessRequest extends HttpServlet {
         }
 
         try {
-            Object obj = MethodExecutor.execute(method ,req);
+            Object obj = MethodExecutor.execute(method ,req, file);
 
             if (method.isAnnotationPresent(API.class)) {
                 res.setContentType("application/json;charset=UTF-8");
