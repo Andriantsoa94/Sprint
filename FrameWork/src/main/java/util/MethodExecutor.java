@@ -8,7 +8,7 @@ import annotation.RequestParam;
 
 public class MethodExecutor {
 
-    public static Object execute(Method method, HttpServletRequest req , Map<String , List<UploadFichier>> uploadFile) throws Exception {
+    public static Object execute(Method method, HttpServletRequest req) throws Exception {
         if (method == null) {
             System.err.println("Methode ne peut pas etre null");
             return null;
@@ -16,17 +16,22 @@ public class MethodExecutor {
         Class<?> classController = method.getDeclaringClass();
         Object instance = classController.getDeclaredConstructor().newInstance();
 
+        Map<String , List<UploadFichier>> uploadFile = UploadFichier.getFile(req);
+
         Parameter[] param = method.getParameters();
         Object[] args = new Object[param.length];
 
         for (int i = 0; i < args.length; i++) {
             Parameter parameters = param[i];
+            RequestParam requestParam = parameters.getAnnotation(RequestParam.class);
+            String paramName = requestParam != null ? requestParam.value() : parameters.getName();
 
-            if (isSimpleType(parameters.getType())) {
-                RequestParam requestParam = parameters.getAnnotation(RequestParam.class);
-                String paramName = requestParam != null
-                        ? requestParam.value()
-                        : parameters.getName();
+            if (parameters.getType() == UploadFichier.class){
+                List<UploadFichier> liste = uploadFile.get(paramName);
+                args[i] = (liste != null && !liste.isEmpty()) ? liste.get(0) : null;
+            } else if (List.class.isAssignableFrom(parameters.getType())) {
+                args[i] = uploadFile.getOrDefault(paramName, new ArrayList<>());
+            }else if (isSimpleType(parameters.getType())) {
                 String value = req.getParameter(paramName);
                 args[i] = convert(value, parameters.getType(), paramName);
             } else {

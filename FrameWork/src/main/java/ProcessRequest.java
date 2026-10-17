@@ -17,7 +17,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import annotation.API;
 import util.MethodExecutor;
 import util.ModelAndView;
-import util.UploadFichier;
 import util.UrlMethod;
 
 @MultipartConfig
@@ -43,8 +42,6 @@ public class ProcessRequest extends HttpServlet {
         String url = req.getRequestURI();
         String route = url.substring(req.getContextPath().length());
         String output = route.substring(route.lastIndexOf('/') + 1);
-
-        Map<String , List<UploadFichier>> file = UploadFichier.getFile(req);
 
         if (output.endsWith(".html")) {
             String cheminPhysique = getServletContext().getRealPath("/" + output);
@@ -83,7 +80,7 @@ public class ProcessRequest extends HttpServlet {
         }
 
         try {
-            Object obj = MethodExecutor.execute(method ,req, file);
+            Object obj = MethodExecutor.execute(method ,req);
 
             if (method.isAnnotationPresent(API.class)) {
                 res.setContentType("application/json;charset=UTF-8");
