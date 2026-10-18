@@ -11,21 +11,27 @@ public class MethodExecutor {
     public static Object execute(Method method, HttpServletRequest req) throws Exception {
         if (method == null) {
             System.err.println("Methode ne peut pas etre null");
+            return null;
         }
         Class<?> classController = method.getDeclaringClass();
         Object instance = classController.getDeclaredConstructor().newInstance();
+
+        Map<String , List<UploadFichier>> uploadFile = UploadFichier.getFile(req);
 
         Parameter[] param = method.getParameters();
         Object[] args = new Object[param.length];
 
         for (int i = 0; i < args.length; i++) {
             Parameter parameters = param[i];
+            RequestParam requestParam = parameters.getAnnotation(RequestParam.class);
+            String paramName = requestParam != null ? requestParam.value() : parameters.getName();
 
-            if (isSimpleType(parameters.getType())) {
-                RequestParam requestParam = parameters.getAnnotation(RequestParam.class);
-                String paramName = requestParam != null
-                        ? requestParam.value()
-                        : parameters.getName();
+            if (parameters.getType() == UploadFichier.class){
+                List<UploadFichier> liste = uploadFile.get(paramName);
+                args[i] = (liste != null && !liste.isEmpty()) ? liste.get(0) : null;
+            } else if (List.class.isAssignableFrom(parameters.getType())) {
+                args[i] = uploadFile.getOrDefault(paramName, new ArrayList<>());
+            }else if (isSimpleType(parameters.getType())) {
                 String value = req.getParameter(paramName);
                 args[i] = convert(value, parameters.getType(), paramName);
             } else {
@@ -40,21 +46,16 @@ public class MethodExecutor {
         if (type == String.class) return true;
         else if (type.isPrimitive()) return true;
         else if (Number.class.isAssignableFrom(type)) return true;
-        else if (type == Boolean.class) return true;
-        return false;
+        else return type == Boolean.class;
     }
 
     private static Object convert(String value, Class<?> type, String parameterName) {
-        if (value == null) {
-            if (type.isPrimitive()) {
-                throw new IllegalArgumentException(
-                    "Le paramètre obligatoire est absent : " + parameterName
-                );
-            }
-            return null;
+        if (type == String.class) return value;
+
+        if (value == null || value.trim().isEmpty()) {
+            return type.isPrimitive() ? defaultPrimitive(type) : null;
         }
 
-        if (type == String.class) return value;
         if (type == int.class || type == Integer.class) return Integer.parseInt(value);
         if (type == long.class || type == Long.class) return Long.parseLong(value);
         if (type == double.class || type == Double.class) return Double.parseDouble(value);
@@ -75,7 +76,7 @@ public class MethodExecutor {
                 f.set(bean, bindList(f, req, base));
             } else if (isSimpleType(fieldType)) {
                 String v = req.getParameter(base);
-                f.set(bean, convertNullable(v, fieldType, base));
+                f.set(bean, convert(v, fieldType, base));
             } else {
                 f.set(bean, bindObject(fieldType, req, base));
             }
@@ -83,14 +84,12 @@ public class MethodExecutor {
         return bean;
     }
 
-    private static Object convertNullable(String value, Class<?> type, String name) {
-        if (value == null) {
-            if (type.isPrimitive()) {
-                throw new IllegalArgumentException("Champ obligatoire absent : " + name);
-            }
-            return null;
-        }
-        return convert(value, type, name);
+    private static Object defaultPrimitive(Class<?> type) {
+        if (type == boolean.class) return false;
+        if (type == int.class) return 0;
+        if (type == long.class) return 0L;
+        if (type == double.class) return 0.0;
+        return null;
     }
 
     private static List<Object> bindList(Field field, HttpServletRequest req, String base) throws Exception {

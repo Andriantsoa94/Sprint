@@ -3,13 +3,13 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import com.google.gson.Gson;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -17,8 +17,10 @@ import jakarta.servlet.http.HttpServletResponse;
 import annotation.API;
 import util.MethodExecutor;
 import util.ModelAndView;
+import util.UploadFichier;
 import util.UrlMethod;
 
+@MultipartConfig
 public class ProcessRequest extends HttpServlet {
 
     private final Gson gson = new Gson();
@@ -33,6 +35,7 @@ public class ProcessRequest extends HttpServlet {
         this.urlMap = (HashMap<UrlMethod, Method>) context.getAttribute("urlMap");
         this.prefix = context.getInitParameter("view-prefix");
         this.surfix = context.getInitParameter("view-suffix");
+        UploadFichier.setDossier(context.getInitParameter("upload-dir"));
     }
 
     protected void processRequest(HttpServletRequest req, HttpServletResponse res)
