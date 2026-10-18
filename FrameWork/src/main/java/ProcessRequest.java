@@ -17,6 +17,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import annotation.API;
 import util.MethodExecutor;
 import util.ModelAndView;
+import util.UploadFichier;
 import util.UrlMethod;
 
 @MultipartConfig
@@ -34,6 +35,7 @@ public class ProcessRequest extends HttpServlet {
         this.urlMap = (HashMap<UrlMethod, Method>) context.getAttribute("urlMap");
         this.prefix = context.getInitParameter("view-prefix");
         this.surfix = context.getInitParameter("view-suffix");
+        UploadFichier.setDossier(context.getInitParameter("upload-dir"));
     }
 
     protected void processRequest(HttpServletRequest req, HttpServletResponse res)
