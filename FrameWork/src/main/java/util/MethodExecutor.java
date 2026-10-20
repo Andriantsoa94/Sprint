@@ -20,26 +20,56 @@ public class MethodExecutor {
 
         Parameter[] param = method.getParameters();
         Object[] args = new Object[param.length];
+        SessionMap session = null;
 
         for (int i = 0; i < args.length; i++) {
             Parameter parameters = param[i];
             RequestParam requestParam = parameters.getAnnotation(RequestParam.class);
             String paramName = requestParam != null ? requestParam.value() : parameters.getName();
 
-            if (parameters.getType() == UploadFichier.class){
+            if (parameters.getType() == SessionMap.class) {
+                session = chargerSession(req);
+                args[i] = session;
+            } else if (parameters.getType() == UploadFichier.class){
                 List<UploadFichier> liste = uploadFile.get(paramName);
                 args[i] = (liste != null && !liste.isEmpty()) ? liste.get(0) : null;
             } else if (List.class.isAssignableFrom(parameters.getType())) {
                 args[i] = uploadFile.getOrDefault(paramName, new ArrayList<>());
             }else if (isSimpleType(parameters.getType())) {
                 String value = req.getParameter(paramName);
-                args[i] = convert(value, parameters.getType(), paramName);
+                args[i] = convert(value, parameters.getType());
             } else {
                 args[i] = bindObject(parameters.getType(), req, "");
             }
         }
 
+        if (session != null) {
+            ecraserSession(req, session);
+        }
+
         return method.invoke(instance, args);
+    }
+
+    private static void ecraserSession(HttpServletRequest req , SessionMap session) {
+        HttpSession s = req.getSession();
+
+        for(String nom : Collections.list(s.getAttributeNames())) {
+            s.removeAttribute(nom);
+        }
+        for (Map.Entry<String, Object> haha  : session.getData().entrySet()) {
+            s.setAttribute(haha.getKey(), haha.getValue());
+        }
+    }
+
+    private static SessionMap chargerSession(HttpServletRequest req) {
+        Map<String ,Object> map = new HashMap<>();
+        HttpSession session = req.getSession();
+
+        for (String nom : Collections.list(req.getAttributeNames())) {
+            map.put(nom ,session.getAttribute(nom));
+        }
+
+        return new SessionMap(map);
     }
 
     private static boolean isSimpleType(Class<?> type) {
@@ -49,7 +79,7 @@ public class MethodExecutor {
         else return type == Boolean.class;
     }
 
-    private static Object convert(String value, Class<?> type, String parameterName) {
+    private static Object convert(String value, Class<?> type) {
         if (type == String.class) return value;
 
         if (value == null || value.trim().isEmpty()) {
@@ -76,7 +106,7 @@ public class MethodExecutor {
                 f.set(bean, bindList(f, req, base));
             } else if (isSimpleType(fieldType)) {
                 String v = req.getParameter(base);
-                f.set(bean, convert(v, fieldType, base));
+                f.set(bean, convert(v, fieldType));
             } else {
                 f.set(bean, bindObject(fieldType, req, base));
             }

@@ -8,6 +8,10 @@ public class SessionMap {
 
     public SessionMap () {}
 
+    public SessionMap(Map<String, Object> session) {
+        this.session = session;
+    }
+
     public Object getSession(String key) {
         return session.get(key);
     }
