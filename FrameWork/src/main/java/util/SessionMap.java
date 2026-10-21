@@ -6,8 +6,6 @@ import java.util.Map;
 public class SessionMap {
     private Map<String , Object> session = new HashMap<>();
 
-    public SessionMap () {}
-
     public SessionMap(Map<String, Object> session) {
         this.session = session;
     }
