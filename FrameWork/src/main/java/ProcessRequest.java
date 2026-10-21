@@ -1,5 +1,6 @@
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
@@ -17,6 +18,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import annotation.API;
 import util.MethodExecutor;
 import util.ModelAndView;
+import util.SessionMap;
 import util.UploadFichier;
 import util.UrlMethod;
 
@@ -27,6 +29,7 @@ public class ProcessRequest extends HttpServlet {
     private HashMap<UrlMethod, Method> urlMap;
     private String prefix;
     private String surfix;
+    private Map<String, SessionMap> sessions;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -35,7 +38,26 @@ public class ProcessRequest extends HttpServlet {
         this.urlMap = (HashMap<UrlMethod, Method>) context.getAttribute("urlMap");
         this.prefix = context.getInitParameter("view-prefix");
         this.surfix = context.getInitParameter("view-suffix");
-        UploadFichier.setDossier(context.getInitParameter("upload-dir"));
+        UploadFichier.setDossier(chargerDossierUpload(context));
+        this.sessions = (Map<String, SessionMap>) context.getAttribute("sessions");
+    }
+
+    private String chargerDossierUpload(ServletContext context) throws ServletException {
+        try (InputStream in = context.getResourceAsStream("/WEB-INF/upload.properties")) {
+            if (in == null) {
+                return null;
+            }
+            Properties props = new Properties();
+            props.load(in);
+            String dossier = props.getProperty("upload.dir");
+            if (dossier == null || dossier.isEmpty()) {
+                return null;
+            }
+            String cheminReel = context.getRealPath(dossier);
+            return cheminReel != null ? cheminReel : dossier;
+        } catch (IOException e) {
+            throw new ServletException("Impossible de lire /WEB-INF/upload.properties", e);
+        }
     }
 
     protected void processRequest(HttpServletRequest req, HttpServletResponse res)
@@ -82,7 +104,7 @@ public class ProcessRequest extends HttpServlet {
         }
 
         try {
-            Object obj = MethodExecutor.execute(method ,req);
+            Object obj = MethodExecutor.execute(method ,req, sessions);
 
             if (method.isAnnotationPresent(API.class)) {
                 res.setContentType("application/json;charset=UTF-8");

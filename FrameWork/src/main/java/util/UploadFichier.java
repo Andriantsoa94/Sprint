@@ -60,7 +60,7 @@ public class UploadFichier {
 
     public String sauvegarder() throws IOException {
         if (dossier == null || dossier.isEmpty()) {
-            throw new IOException("Dossier d'upload non configure (context-param upload-dir dans web.xml)");
+            throw new IOException("Dossier d'upload non configure (upload.dir dans /WEB-INF/upload.properties)");
         }
         Path dir = Paths.get(dossier);
         Files.createDirectories(dir);
