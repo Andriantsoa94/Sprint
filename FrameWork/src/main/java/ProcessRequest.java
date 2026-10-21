@@ -18,6 +18,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import annotation.API;
 import util.MethodExecutor;
 import util.ModelAndView;
+import util.SessionMap;
 import util.UploadFichier;
 import util.UrlMethod;
 
@@ -28,6 +29,7 @@ public class ProcessRequest extends HttpServlet {
     private HashMap<UrlMethod, Method> urlMap;
     private String prefix;
     private String surfix;
+    private Map<String, SessionMap> sessions;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -37,6 +39,7 @@ public class ProcessRequest extends HttpServlet {
         this.prefix = context.getInitParameter("view-prefix");
         this.surfix = context.getInitParameter("view-suffix");
         UploadFichier.setDossier(chargerDossierUpload(context));
+        this.sessions = (Map<String, SessionMap>) context.getAttribute("sessions");
     }
 
     private String chargerDossierUpload(ServletContext context) throws ServletException {
@@ -101,7 +104,7 @@ public class ProcessRequest extends HttpServlet {
         }
 
         try {
-            Object obj = MethodExecutor.execute(method ,req);
+            Object obj = MethodExecutor.execute(method ,req, sessions);
 
             if (method.isAnnotationPresent(API.class)) {
                 res.setContentType("application/json;charset=UTF-8");

@@ -8,7 +8,7 @@ import annotation.RequestParam;
 
 public class MethodExecutor {
 
-    public static Object execute(Method method, HttpServletRequest req) throws Exception {
+    public static Object execute(Method method, HttpServletRequest req, Map<String, SessionMap> sessions) throws Exception {
         if (method == null) {
             System.err.println("Methode ne peut pas etre null");
             return null;
@@ -28,7 +28,7 @@ public class MethodExecutor {
             String paramName = requestParam != null ? requestParam.value() : parameters.getName();
 
             if (parameters.getType() == SessionMap.class) {
-                session = chargerSession(req);
+                session = SessionMap.chargerSession(req, sessions);
                 args[i] = session;
             } else if (parameters.getType() == UploadFichier.class){
                 List<UploadFichier> liste = uploadFile.get(paramName);
@@ -43,33 +43,13 @@ public class MethodExecutor {
             }
         }
 
+        Object result = method.invoke(instance, args);
+
         if (session != null) {
-            ecraserSession(req, session);
+            session.ecraserSession();
         }
 
-        return method.invoke(instance, args);
-    }
-
-    private static void ecraserSession(HttpServletRequest req , SessionMap session) {
-        HttpSession s = req.getSession();
-
-        for(String nom : Collections.list(s.getAttributeNames())) {
-            s.removeAttribute(nom);
-        }
-        for (Map.Entry<String, Object> haha  : session.getData().entrySet()) {
-            s.setAttribute(haha.getKey(), haha.getValue());
-        }
-    }
-
-    private static SessionMap chargerSession(HttpServletRequest req) {
-        Map<String ,Object> map = new HashMap<>();
-        HttpSession session = req.getSession();
-
-        for (String nom : Collections.list(req.getAttributeNames())) {
-            map.put(nom ,session.getAttribute(nom));
-        }
-
-        return new SessionMap(map);
+        return result;
     }
 
     private static boolean isSimpleType(Class<?> type) {
