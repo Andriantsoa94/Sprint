@@ -29,6 +29,7 @@ public class ProcessRequest extends HttpServlet {
     private HashMap<UrlMethod, Method> urlMap;
     private String prefix;
     private String surfix;
+    private String isAuth;
     private Map<String, SessionMap> sessions;
 
     @SuppressWarnings("unchecked")
@@ -40,6 +41,7 @@ public class ProcessRequest extends HttpServlet {
         this.surfix = context.getInitParameter("view-suffix");
         UploadFichier.setDossier(chargerDossierUpload(context));
         this.sessions = (Map<String, SessionMap>) context.getAttribute("sessions");
+        this.isAuth = (String) context.getAttribute("isAuth");
     }
 
     private String chargerDossierUpload(ServletContext context) throws ServletException {
