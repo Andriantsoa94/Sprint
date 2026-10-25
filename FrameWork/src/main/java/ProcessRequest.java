@@ -16,6 +16,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import annotation.API;
+import util.AuthChecker;
 import util.MethodExecutor;
 import util.ModelAndView;
 import util.SessionMap;
@@ -29,7 +30,7 @@ public class ProcessRequest extends HttpServlet {
     private HashMap<UrlMethod, Method> urlMap;
     private String prefix;
     private String surfix;
-    private String isAuth;
+    private String authKey;
     private Map<String, SessionMap> sessions;
 
     @SuppressWarnings("unchecked")
@@ -39,9 +40,9 @@ public class ProcessRequest extends HttpServlet {
         this.urlMap = (HashMap<UrlMethod, Method>) context.getAttribute("urlMap");
         this.prefix = context.getInitParameter("view-prefix");
         this.surfix = context.getInitParameter("view-suffix");
+        this.authKey = (String) context.getAttribute("authKey");
         UploadFichier.setDossier(chargerDossierUpload(context));
         this.sessions = (Map<String, SessionMap>) context.getAttribute("sessions");
-        this.isAuth = (String) context.getAttribute("isAuth");
     }
 
     private String chargerDossierUpload(ServletContext context) throws ServletException {
@@ -101,6 +102,18 @@ public class ProcessRequest extends HttpServlet {
                     out.println(u.getMethod() + " " + u.getUrl() + "    " + m.getDeclaringClass().getName() + "."
                             + m.getName() + "()");
                 }
+            }
+            return;
+        }
+
+        if (!AuthChecker.estAutorise(method, req, authKey)) {
+            res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            if (method.isAnnotationPresent(API.class)) {
+                res.setContentType("application/json;charset=UTF-8");
+                res.getWriter().print(gson.toJson(Map.of("erreur", "non connecte")));
+            } else {
+                res.setContentType("text/plain;charset=UTF-8");
+                res.getWriter().println("Acces refuse : vous devez etre connecte");
             }
             return;
         }
