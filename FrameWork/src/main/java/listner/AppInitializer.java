@@ -27,6 +27,13 @@ public class AppInitializer implements ServletContextListener, HttpSessionListen
         Map<String, SessionMap> sessions = new ConcurrentHashMap<>();
         context.setAttribute("sessions", sessions);
 
+        String auth = context.getInitParameter("auth");
+        if (auth == null || auth.isBlank()) {
+            auth = "isAuth";
+        }
+        context.setAttribute("authKey", auth);
+        System.out.println("[MonFramework] Cle de session pour @Auth : " + auth);
+
         String packageController = context.getInitParameter("controleurPackage");
         if (packageController == null || packageController.isBlank()) {
             System.out.println("[MonFramework] Erreur : le context-param 'controleurPackage' est manquant dans le web.xml");
