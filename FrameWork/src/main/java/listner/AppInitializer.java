@@ -28,11 +28,11 @@ public class AppInitializer implements ServletContextListener, HttpSessionListen
         context.setAttribute("sessions", sessions);
 
         String auth = context.getInitParameter("auth");
-        if (auth == null || auth.isBlank()){
-
-        } else {
-            context.setAttribute("isAuth" , auth);
+        if (auth == null || auth.isBlank()) {
+            auth = "isAuth";
         }
+        context.setAttribute("authKey", auth);
+        System.out.println("[MonFramework] Cle de session pour @Auth : " + auth);
 
         String packageController = context.getInitParameter("controleurPackage");
         if (packageController == null || packageController.isBlank()) {
