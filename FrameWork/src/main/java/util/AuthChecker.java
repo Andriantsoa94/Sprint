@@ -9,8 +9,7 @@ import jakarta.servlet.http.HttpSession;
 public class AuthChecker {
 
     public static boolean estAutorise(Method method, HttpServletRequest req, String authKey) {
-        boolean protege = method.isAnnotationPresent(Auth.class)
-                || method.getDeclaringClass().isAnnotationPresent(Auth.class);
+        boolean protege = method.isAnnotationPresent(Auth.class) || method.getDeclaringClass().isAnnotationPresent(Auth.class);
         if (!protege) {
             return true;
         }
