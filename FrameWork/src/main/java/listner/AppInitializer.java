@@ -34,6 +34,12 @@ public class AppInitializer implements ServletContextListener, HttpSessionListen
         context.setAttribute("authKey", auth);
         System.out.println("[MonFramework] Cle de session pour @Auth : " + auth);
 
+        String roleKey = (String) context.getInitParameter("roleAuth");
+        if (roleKey == null || roleKey.isBlank()) {
+            roleKey = "role";
+        }
+        context.setAttribute("roleKey" , roleKey);
+
         String packageController = context.getInitParameter("controleurPackage");
         if (packageController == null || packageController.isBlank()) {
             System.out.println("[MonFramework] Erreur : le context-param 'controleurPackage' est manquant dans le web.xml");

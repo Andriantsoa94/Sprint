@@ -16,6 +16,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import annotation.API;
+import annotation.Auth;
 import util.AuthChecker;
 import util.MethodExecutor;
 import util.ModelAndView;
@@ -32,6 +33,7 @@ public class ProcessRequest extends HttpServlet {
     private String surfix;
     private String authKey;
     private Map<String, SessionMap> sessions;
+    private String roleKey;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -43,6 +45,7 @@ public class ProcessRequest extends HttpServlet {
         this.authKey = (String) context.getAttribute("authKey");
         UploadFichier.setDossier(chargerDossierUpload(context));
         this.sessions = (Map<String, SessionMap>) context.getAttribute("sessions");
+        this.roleKey = (String) context.getAttribute("roleKey");
     }
 
     private String chargerDossierUpload(ServletContext context) throws ServletException {
@@ -106,16 +109,18 @@ public class ProcessRequest extends HttpServlet {
             return;
         }
 
-        if (!AuthChecker.estAutorise(method, req, authKey)) {
-            res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            if (method.isAnnotationPresent(API.class)) {
-                res.setContentType("application/json;charset=UTF-8");
-                res.getWriter().print(gson.toJson(Map.of("erreur", "non connecte")));
-            } else {
-                res.setContentType("text/plain;charset=UTF-8");
-                res.getWriter().println("Acces refuse : vous devez etre connecte");
+        Auth auth = AuthChecker.findAuth(method);
+        if (auth != null) {
+            if (!AuthChecker.estConnecte(req, authKey)) {
+                refuser(res, method, HttpServletResponse.SC_UNAUTHORIZED, "non connecte",
+                        "Acces refuse : vous devez etre connecte");
+                return;
             }
-            return;
+            if (!AuthChecker.hasAnyRole(req, roleKey, auth.value())) {
+                refuser(res, method, HttpServletResponse.SC_FORBIDDEN, "role non autorise",
+                        "Acces refuse : role requis " + Arrays.toString(auth.value()));
+                return;
+            }
         }
 
         try {
@@ -152,6 +157,18 @@ public class ProcessRequest extends HttpServlet {
             res.setContentType("text/plain;charset=UTF-8");
             PrintWriter out = res.getWriter();
             out.println("Erreur lors de l'execution du methode :" + e);
+        }
+    }
+
+    private void refuser(HttpServletResponse res, Method method, int status, String erreurJson, String message)
+            throws IOException {
+        res.setStatus(status);
+        if (method.isAnnotationPresent(API.class)) {
+            res.setContentType("application/json;charset=UTF-8");
+            res.getWriter().print(gson.toJson(Map.of("erreur", erreurJson)));
+        } else {
+            res.setContentType("text/plain;charset=UTF-8");
+            res.getWriter().println(message);
         }
     }
 
