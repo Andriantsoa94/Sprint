@@ -27,6 +27,9 @@ public class AppInitializer implements ServletContextListener, HttpSessionListen
         Map<String, SessionMap> sessions = new ConcurrentHashMap<>();
         context.setAttribute("sessions", sessions);
 
+        Map<Class<?>, Object> controllerInstances = new ConcurrentHashMap<>();
+        context.setAttribute("controllerInstances", controllerInstances);
+
         String auth = context.getInitParameter("auth");
         if (auth == null || auth.isBlank()) {
             auth = "isAuth";
