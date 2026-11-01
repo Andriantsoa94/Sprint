@@ -17,6 +17,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import annotation.API;
 import util.AuthChecker;
+import util.ControllerFactory;
 import util.MethodExecutor;
 import util.ModelAndView;
 import util.SessionMap;
@@ -32,6 +33,7 @@ public class ProcessRequest extends HttpServlet {
     private String surfix;
     private String authKey;
     private Map<String, SessionMap> sessions;
+    private Map<Class<?>, Object> controllerInstances;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -43,6 +45,7 @@ public class ProcessRequest extends HttpServlet {
         this.authKey = (String) context.getAttribute("authKey");
         UploadFichier.setDossier(chargerDossierUpload(context));
         this.sessions = (Map<String, SessionMap>) context.getAttribute("sessions");
+        this.controllerInstances = (Map<Class<?>, Object>) context.getAttribute("controllerInstances");
     }
 
     private String chargerDossierUpload(ServletContext context) throws ServletException {
@@ -119,7 +122,8 @@ public class ProcessRequest extends HttpServlet {
         }
 
         try {
-            Object obj = MethodExecutor.execute(method ,req, sessions);
+            Object controller = ControllerFactory.getControllerInstance(method.getDeclaringClass(), controllerInstances);
+            Object obj = MethodExecutor.execute(method, controller, req, sessions);
 
             if (method.isAnnotationPresent(API.class)) {
                 res.setContentType("application/json;charset=UTF-8");

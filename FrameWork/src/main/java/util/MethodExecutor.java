@@ -8,14 +8,11 @@ import annotation.RequestParam;
 
 public class MethodExecutor {
 
-    public static Object execute(Method method, HttpServletRequest req, Map<String, SessionMap> sessions) throws Exception {
+    public static Object execute(Method method, Object instance, HttpServletRequest req, Map<String, SessionMap> sessions) throws Exception {
         if (method == null) {
             System.err.println("Methode ne peut pas etre null");
             return null;
         }
-        Class<?> classController = method.getDeclaringClass();
-        Object instance = classController.getDeclaredConstructor().newInstance();
-
         Map<String , List<UploadFichier>> uploadFile = UploadFichier.getFile(req);
 
         Parameter[] param = method.getParameters();
